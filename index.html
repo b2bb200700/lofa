@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="의견 취합">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.json">
+<title>의견 취합</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;color:#1d1d1f;min-height:100vh;-webkit-tap-highlight-color:transparent}
+.app{max-width:480px;margin:0 auto;min-height:100vh;background:#fff;position:relative;overflow-x:hidden}
+.screen{display:none}.screen.active{display:block}
+
+/* Header */
+.header{padding:16px 20px;border-bottom:1px solid #e5e5e7;display:flex;align-items:center;gap:12px;position:sticky;top:0;background:#fff;z-index:10}
+.header h1{font-size:18px;font-weight:600}
+.header .back{font-size:22px;cursor:pointer;color:#007aff;text-decoration:none;-webkit-tap-highlight-color:transparent}
+.header .action-btn{margin-left:auto;background:#007aff;color:#fff;border:none;padding:6px 14px;border-radius:16px;font-size:14px;cursor:pointer;font-weight:500}
+.header .action-btn:hover{background:#0056cc}
+.header .action-btn.danger{background:#ff3b30}.header .action-btn.danger:hover{background:#d32f2f}
+.header .action-btn.gear{background:#f0f0f2;color:#1d1d1f;margin-left:0;padding:6px 10px;font-size:16px}
+.profile-chip{display:flex;align-items:center;gap:6px;background:#f0f0f2;padding:4px 12px 4px 6px;border-radius:20px;cursor:pointer;font-size:14px}
+.profile-chip .pem{font-size:20px}.profile-chip .pnm{font-weight:500}
+
+/* Lock Screen */
+.lock-screen{padding:60px 20px 40px;text-align:center}
+.lock-screen h2{font-size:22px;font-weight:700;margin-bottom:8px}
+.lock-screen .sub{font-size:14px;color:#86868b;margin-bottom:32px}
+.pin-dots{display:flex;gap:12px;justify-content:center;margin-bottom:32px}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid #d2d2d7;transition:all .2s}
+.pin-dot.filled{background:#007aff;border-color:#007aff}
+.pin-dot.error{background:#ff3b30;border-color:#ff3b30}
+.keypad{display:grid;grid-template-columns:repeat(3,72px);gap:12px;justify-content:center}
+.keypad button{width:72px;height:72px;border-radius:50%;border:1px solid #d2d2d7;background:#fff;font-size:28px;font-weight:300;cursor:pointer;transition:all .1s;-webkit-tap-highlight-color:transparent}
+.keypad button:active{background:#e8e8ed;transform:scale(.95)}
+.keypad button.fn{font-size:14px;border:none;color:#007aff;font-weight:500}
+
+/* Profile */
+.profile-setup{padding:40px 20px;text-align:center}
+.profile-setup h2{font-size:22px;font-weight:700;margin-bottom:6px}
+.profile-setup .sub{font-size:14px;color:#86868b;margin-bottom:28px}
+.emoji-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;max-width:300px;margin:0 auto 24px}
+.emoji-cell{font-size:32px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;cursor:pointer;border:2px solid transparent;transition:all .15s}
+.emoji-cell:hover{background:#f0f7ff}
+.emoji-cell.selected{border-color:#007aff;background:#e8f0fe;transform:scale(1.1)}
+.profile-name-input{width:100%;max-width:300px;margin:0 auto;display:block;padding:12px 16px;border:1px solid #d2d2d7;border-radius:12px;font-size:16px;text-align:center;outline:none}
+.profile-name-input:focus{border-color:#007aff;box-shadow:0 0 0 3px rgba(0,122,255,.1)}
+.pf-btn{margin-top:20px;padding:14px 40px;background:#007aff;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer}
+.pf-btn:disabled{background:#ccc;cursor:not-allowed}
+
+/* Poll list */
+.poll-list{padding:12px 20px}
+.poll-card{background:#fff;border:1px solid #e5e5e7;border-radius:12px;padding:16px;margin-bottom:12px;cursor:pointer;transition:box-shadow .2s}
+.poll-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.poll-card .poll-title{font-size:16px;font-weight:600;margin-bottom:6px}
+.poll-card .poll-meta{font-size:13px;color:#86868b;display:flex;gap:12px}
+.poll-card .poll-status{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:500}
+.poll-card .poll-status.open{background:#e8f5e9;color:#2e7d32}
+.poll-card .poll-status.closed{background:#fce4ec;color:#c62828}
+.poll-card .voter-avatars{display:flex;gap:2px;margin-top:8px}
+.poll-card .comment-count{font-size:12px;color:#86868b;margin-top:6px}
+.empty-state{text-align:center;padding:60px 20px;color:#86868b}.empty-state .icon{font-size:48px;margin-bottom:12px}
+
+/* Sync indicator */
+.sync-status{font-size:11px;color:#86868b;text-align:center;padding:4px;background:#f9f9f9}
+.sync-status.offline{background:#fff3cd;color:#856404}
+.sync-status.error{background:#fce4ec;color:#c62828}
+
+/* Tabs */
+.tab-bar{display:flex;border-bottom:1px solid #e5e5e7;padding:0 20px}
+.tab{padding:12px 16px;font-size:14px;font-weight:500;color:#86868b;cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:#007aff;border-bottom-color:#007aff}
+
+/* Form */
+.form-section{padding:20px}
+.form-group{margin-bottom:20px}
+.form-group label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+.form-group .hint{font-size:12px;color:#86868b;margin-bottom:6px}
+.form-group input,.form-group textarea{width:100%;padding:10px 12px;border:1px solid #d2d2d7;border-radius:8px;font-size:15px;outline:none;font-family:inherit}
+.form-group input:focus,.form-group textarea:focus{border-color:#007aff;box-shadow:0 0 0 3px rgba(0,122,255,.1)}
+.option-list{display:flex;flex-direction:column;gap:8px}
+.option-row{display:flex;gap:6px;align-items:center}
+.option-row input{flex:1}
+.option-row .remove-btn{width:30px;height:30px;border-radius:50%;border:none;background:#ff3b30;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.add-option-btn{background:none;border:1px dashed #d2d2d7;border-radius:8px;padding:10px;color:#007aff;font-size:14px;cursor:pointer;width:100%;margin-top:8px}
+.add-option-btn:hover{background:#f5f5f7}
+.deadline-row{display:flex;gap:8px}.deadline-row input{flex:1}
+.menu-source-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#86868b;background:#f5f5f7;padding:2px 8px;border-radius:10px}
+.preset-item{display:flex;align-items:center;gap:6px;padding:10px 14px;border:2px solid #e5e5e7;border-radius:12px;cursor:pointer;font-size:14px;transition:all .15s;margin-bottom:6px}
+.preset-item:hover{border-color:#007aff;background:#f0f7ff}
+.preset-item.selected{border-color:#007aff;background:#e8f0fe}
+.preset-item .preset-text{flex:1}
+.preset-item .preset-actions{display:flex;gap:4px}
+.preset-item .preset-actions button{width:26px;height:26px;border-radius:6px;border:none;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.preset-item .preset-actions .edit-btn{background:#f0f0f2;color:#1d1d1f}
+.preset-item .preset-actions .del-btn{background:#fff0f0;color:#ff3b30}
+
+/* Vote */
+.vote-section{padding:20px}
+.vote-question{font-size:20px;font-weight:700;margin-bottom:4px}
+.vote-desc{font-size:14px;color:#86868b;margin-bottom:20px}
+.vote-deadline{font-size:13px;color:#ff3b30;margin-bottom:20px;padding:8px 12px;background:#fff5f5;border-radius:8px}
+.vote-options{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.vote-option{padding:14px 16px;border:2px solid #e5e5e7;border-radius:12px;cursor:pointer;transition:all .2s;font-size:15px;display:flex;align-items:center;gap:10px}
+.vote-option:hover{border-color:#007aff;background:#f0f7ff}
+.vote-option.selected{border-color:#007aff;background:#e8f0fe}
+.vote-option.selected .check{display:inline}.vote-option .check{display:none;color:#007aff;font-weight:700}
+.vote-option .opt-text{flex:1}.vote-option .opt-meta{font-size:12px;color:#86868b}
+.custom-input-area{margin-bottom:20px}
+.custom-toggle{color:#007aff;font-size:14px;cursor:pointer;display:inline-block}
+.submit-btn{width:100%;padding:14px;background:#007aff;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer}
+.submit-btn:hover{background:#0056cc}
+
+/* Result */
+.result-section{padding:20px}
+.result-title{font-size:20px;font-weight:700;margin-bottom:4px}
+.result-summary{font-size:14px;color:#86868b;margin-bottom:20px}
+.result-bar-group{margin-bottom:14px}
+.result-bar-label{display:flex;justify-content:space-between;margin-bottom:4px;font-size:14px}.result-bar-label .count{color:#86868b}
+.result-bar-track{height:36px;background:#f0f0f2;border-radius:8px;overflow:hidden}
+.result-bar-fill{height:100%;border-radius:8px;transition:width .6s ease;display:flex;align-items:center;padding-left:12px;font-size:13px;color:#fff;font-weight:600;min-width:fit-content}
+.result-bar-fill.c1{background:#007aff}.result-bar-fill.c2{background:#34c759}.result-bar-fill.c3{background:#ff9500}.result-bar-fill.c4{background:#af52de}.result-bar-fill.c5{background:#ff3b30}.result-bar-fill.c6{background:#5ac8fa}
+.result-bar-voters{display:flex;gap:2px;margin-top:4px;flex-wrap:wrap}
+.result-bar-voters .voter-tag{display:inline-flex;align-items:center;gap:2px;font-size:12px;background:#f5f5f7;padding:2px 8px;border-radius:10px}
+.result-total{text-align:center;margin-top:20px;padding:12px;background:#f5f5f7;border-radius:8px;font-size:14px;color:#86868b}
+
+/* Comments & Replies */
+.comments-section{margin-top:24px;border-top:1px solid #e5e5e7;padding-top:16px}
+.comments-title{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.comments-title .cnt{font-size:13px;color:#86868b;font-weight:400}
+.comment-item{margin-bottom:14px}
+.comment-main{display:flex;gap:10px}
+.comment-avatar{font-size:22px;flex-shrink:0;margin-top:2px}
+.comment-body{flex:1}
+.comment-header{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.comment-header .cname{font-size:13px;font-weight:600}
+.comment-header .ctime{font-size:11px;color:#86868b}
+.comment-text{font-size:14px;line-height:1.5;color:#333}
+.comment-actions{margin-top:4px;display:flex;gap:12px}
+.comment-actions span{font-size:12px;color:#007aff;cursor:pointer}
+.comment-actions span:hover{text-decoration:underline}
+
+/* Replies */
+.replies-container{margin-left:32px;margin-top:8px;border-left:2px solid #e8e8ed;padding-left:12px}
+.reply-item{display:flex;gap:8px;margin-bottom:10px}
+.reply-item .comment-avatar{font-size:18px}
+.reply-item .cname{font-size:12px}
+.reply-item .comment-text{font-size:13px}
+.reply-input-row{display:flex;gap:6px;margin-top:6px}
+.reply-input-row input{flex:1;padding:8px 12px;border:1px solid #d2d2d7;border-radius:16px;font-size:13px;outline:none}
+.reply-input-row input:focus{border-color:#007aff}
+.reply-input-row button{padding:6px 12px;background:#007aff;color:#fff;border:none;border-radius:16px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+
+.comment-input-row{display:flex;gap:8px;margin-top:12px}
+.comment-input-row input{flex:1;padding:10px 12px;border:1px solid #d2d2d7;border-radius:20px;font-size:14px;outline:none}
+.comment-input-row input:focus{border-color:#007aff}
+.comment-input-row button{padding:8px 16px;background:#007aff;color:#fff;border:none;border-radius:20px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap}
+
+/* Admin */
+.admin-section{padding:20px}
+.admin-section h2{font-size:18px;font-weight:700;margin-bottom:20px}
+.admin-field{margin-bottom:20px}
+.admin-field label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+.admin-field input{width:100%;padding:10px 12px;border:1px solid #d2d2d7;border-radius:8px;font-size:15px;outline:none;font-family:inherit}
+
+/* Toast */
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1d1d1f;color:#fff;padding:12px 24px;border-radius:24px;font-size:14px;z-index:100;display:none;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+/* Modal */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:50;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;padding:24px;width:90%;max-width:400px}
+.modal h3{font-size:17px;margin-bottom:8px}
+.modal p{font-size:14px;color:#86868b;margin-bottom:16px}
+.modal input{width:100%;padding:10px 12px;border:1px solid #d2d2d7;border-radius:8px;font-size:15px;outline:none;margin-bottom:16px}
+.modal-actions{display:flex;gap:8px}
+.modal-actions button{flex:1;padding:10px;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer}
+.modal-actions .cancel{background:#f0f0f2;border:none;color:#1d1d1f}
+.modal-actions .confirm{background:#007aff;border:none;color:#fff}
+.modal-actions .del{background:#ff3b30;border:none;color:#fff}
+
+/* Loading */
+.loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.8);z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+.loading-overlay.show{display:flex}
+.spinner{width:36px;height:36px;border:3px solid #e5e5e7;border-top-color:#007aff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Lock Screen -->
+  <div id="screen-lock" class="screen active">
+    <div class="header"><h1>의견 취합</h1></div>
+    <div class="lock-screen">
+      <h2>비밀번호를 눌러주세요</h2>
+      <div class="sub">4자리 숫자를 입력하세요</div>
+      <div class="pin-dots" id="pin-dots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
+      <div class="keypad" id="keypad"></div>
+    </div>
+  </div>
+
+  <!-- Profile -->
+  <div id="screen-profile" class="screen">
+    <div class="header"><h1>의견 취합</h1></div>
+    <div class="profile-setup">
+      <h2>나를 표현할 이모지를 골라주세요</h2>
+      <div class="sub">투표할 때 이름 옆에 표시돼요</div>
+      <div class="emoji-grid" id="emoji-grid"></div>
+      <input class="profile-name-input" id="profile-name" type="text" placeholder="이름을 입력하세요" maxlength="10">
+      <br><button class="pf-btn" id="pf-btn" onclick="saveProfile()" disabled>시작하기</button>
+    </div>
+  </div>
+
+  <!-- Home -->
+  <div id="screen-home" class="screen">
+    <div class="header">
+      <h1>의견 취합</h1>
+      <button class="action-btn gear" onclick="showScreen('admin')">⚙️</button>
+      <div class="profile-chip" onclick="showScreen('profile')" id="my-chip"></div>
+      <button class="action-btn" onclick="showScreen('create')">+ 새 주제</button>
+    </div>
+    <div id="sync-bar" class="sync-status" style="display:none"></div>
+    <div class="tab-bar">
+      <div class="tab active" onclick="filterPolls('all',this)">전체</div>
+      <div class="tab" onclick="filterPolls('open',this)">진행중</div>
+      <div class="tab" onclick="filterPolls('closed',this)">종료</div>
+    </div>
+    <div id="poll-list" class="poll-list"></div>
+  </div>
+
+  <!-- Admin -->
+  <div id="screen-admin" class="screen">
+    <div class="header">
+      <a class="back" onclick="showScreen('home')">&#8249;</a>
+      <h1>관리자 설정</h1>
+    </div>
+    <div class="admin-section">
+      <h2>비밀번호 변경</h2>
+      <div class="admin-field">
+        <label>현재 비밀번호</label>
+        <input type="password" id="admin-cur-pw" maxlength="4" placeholder="현재 4자리" inputmode="numeric">
+      </div>
+      <div class="admin-field">
+        <label>새 비밀번호</label>
+        <input type="password" id="admin-new-pw" maxlength="4" placeholder="새 4자리" inputmode="numeric">
+      </div>
+      <div class="admin-field">
+        <label>새 비밀번호 확인</label>
+        <input type="password" id="admin-new-pw2" maxlength="4" placeholder="새 4자리 다시 입력" inputmode="numeric">
+      </div>
+      <button class="submit-btn" onclick="changePassword()">비밀번호 변경</button>
+    </div>
+  </div>
+
+  <!-- Create -->
+  <div id="screen-create" class="screen">
+    <div class="header">
+      <a class="back" onclick="showScreen('home')">&#8249;</a>
+      <h1 id="create-title">새 주제 만들기</h1>
+      <button class="action-btn" onclick="savePoll()">완료</button>
+    </div>
+    <div class="form-section">
+      <div class="form-group">
+        <label>주제 선택</label>
+        <div class="hint">자주 사용하는 주제를 선택하거나 직접 입력하세요</div>
+        <div id="topic-presets"></div>
+        <input type="text" id="poll-title" placeholder="직접 입력: 예) 희망하는 저녁 메뉴를 선택하세요">
+        <button class="add-option-btn" onclick="addTopicPreset()" style="margin-top:8px">+ 주제 추가</button>
+      </div>
+      <div class="form-group">
+        <label>답변 보기</label>
+        <div class="hint">투표 선택지를 추가하세요 (2개 이상)</div>
+        <div id="auto-source-tag" class="menu-source-tag" style="display:none;margin-bottom:8px"></div>
+        <div id="options-list" class="option-list"></div>
+        <button class="add-option-btn" onclick="addOptionField()">+ 보기 추가 (자유 작성)</button>
+      </div>
+      <div class="form-group">
+        <label>직접 입력 허용</label>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <input type="checkbox" id="allow-custom" style="width:auto" checked>
+          <span style="font-size:14px">투표자가 보기 외 답변을 직접 작성 가능</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>답변 기한</label>
+        <div class="deadline-row">
+          <input type="date" id="poll-deadline-date">
+          <input type="time" id="poll-deadline-time" value="18:00">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vote -->
+  <div id="screen-vote" class="screen">
+    <div class="header">
+      <a class="back" onclick="showScreen('home')">&#8249;</a>
+      <h1>투표하기</h1>
+      <div class="profile-chip" id="vote-chip" style="pointer-events:none"></div>
+    </div>
+    <div class="vote-section" id="vote-area"></div>
+  </div>
+
+  <!-- Result -->
+  <div id="screen-result" class="screen">
+    <div class="header">
+      <a class="back" onclick="showScreen('home')">&#8249;</a>
+      <h1>결과 보기</h1>
+    </div>
+    <div class="result-section" id="result-area"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal-overlay" id="modal">
+  <div class="modal" id="modal-content"></div>
+</div>
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <span style="font-size:14px;color:#86868b">데이터를 불러오는 중...</span>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
+<script>
+// ============================================
+// 🔧 FIREBASE CONFIG — 여기에 본인의 Firebase 설정을 입력하세요!
+// ============================================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC_qM21wn4XHLG4LS4Sxevua9vJHe8oVvQ",
+  authDomain: "famliypoll.firebaseapp.com",
+  databaseURL: "https://famliypoll-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "famliypoll",
+  storageBucket: "famliypoll.firebasestorage.app",
+  messagingSenderId: "908465252898",
+  appId: "1:908465252898:web:b5f7b9e0c6eaac268e787b"
+};
+// ============================================
+
+let db = null;
+let isOnline = true;
+let firebaseReady = false;
+
+// ==== FIREBASE INIT ====
+function initFirebase() {
+  try {
+    if (FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY') {
+      console.log('Firebase 미설정 — 로컬 모드로 동작합니다');
+      firebaseReady = false;
+      return;
+    }
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    firebaseReady = true;
+
+    // Connection state
+    db.ref('.info/connected').on('value', snap => {
+      isOnline = snap.val() === true;
+      updateSyncStatus();
+    });
+
+    // Listen for polls changes (realtime sync)
+    db.ref('polls').on('value', snap => {
+      const data = snap.val();
+      if (data) {
+        polls = Object.values(data).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+      } else {
+        polls = [];
+      }
+      renderPollList();
+      updateSyncStatus();
+    });
+
+    // Listen for settings changes
+    db.ref('settings').on('value', snap => {
+      const data = snap.val();
+      if (data) {
+        if (data.password) APP_PASSWORD = data.password;
+        if (data.topicPresets) topicPresets = data.topicPresets;
+      }
+    });
+
+    hideLoading();
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    firebaseReady = false;
+    hideLoading();
+  }
+}
+
+function updateSyncStatus() {
+  const bar = document.getElementById('sync-bar');
+  if (!firebaseReady) {
+    bar.textContent = '📱 오프라인 모드 (로컬 저장)';
+    bar.className = 'sync-status offline';
+    bar.style.display = 'block';
+  } else if (!isOnline) {
+    bar.textContent = '📡 연결 끊김 — 재연결 대기 중...';
+    bar.className = 'sync-status offline';
+    bar.style.display = 'block';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+// ==== DB HELPERS ====
+function dbSavePoll(poll) {
+  if (firebaseReady && db) {
+    db.ref('polls/' + poll.id).set(poll);
+  }
+}
+function dbDeletePoll(id) {
+  if (firebaseReady && db) {
+    db.ref('polls/' + id).remove();
+  }
+}
+function dbSaveSettings() {
+  if (firebaseReady && db) {
+    db.ref('settings').set({ password: APP_PASSWORD, topicPresets });
+  }
+}
+
+// ==== DATA ====
+let APP_PASSWORD = '1234';
+let polls = [];
+let currentFilter = 'all';
+let myProfile = { name: '', emoji: '' };
+let editingPollId = null;
+let lastAutoSource = null;
+
+const EMOJIS = ['😊','😎','🤗','🦊','🐱','🐶','🦁','🐻','🐰','🐸','🦄','🐧','🌸','🌻','⭐','🔥','💎','🎵','🍕','☕','🎯','🚀','💡','🎨'];
+
+let topicPresets = [
+  '희망하는 저녁 메뉴를 선택하세요',
+  '희망하는 구매물품을 선택해주세요',
+  '다음 회식 장소를 골라주세요',
+  '회의 시간을 선택해주세요',
+];
+const foodKW = ['메뉴','저녁','점심','회식','음식','먹'];
+const shopKW = ['구매','물품','주문','쇼핑','필요한 것','사야'];
+
+const deliveryMenus = {
+  '한식':{icon:'🍚',items:['김치찌개','된장찌개','제육볶음','불고기','비빔밥','떡볶이','순대국','삼겹살']},
+  '중식':{icon:'🥟',items:['짜장면','짬뽕','탕수육','마라탕','마라샹궈','볶음밥','깐풍기','양꼬치']},
+  '일식':{icon:'🍣',items:['초밥','라멘','돈카츠','우동','사시미','카레','규동','텐동']},
+  '양식':{icon:'🍝',items:['파스타','피자','스테이크','리조또','햄버거','샌드위치','샐러드','오믈렛']},
+  '치킨':{icon:'🍗',items:['후라이드','양념치킨','간장치킨','마늘치킨','반반치킨','순살치킨']},
+  '분식':{icon:'🍢',items:['떡볶이','김밥','라볶이','순대','튀김','쫄면','비빔국수']},
+  '카페':{icon:'☕',items:['아메리카노','카페라떼','케이크','베이글','스무디','버블티']},
+};
+const coupangProducts = {
+  '사무용품':{icon:'🖊️',items:['A4용지','포스트잇','볼펜세트','파일철','스테이플러','메모패드']},
+  '전자기기':{icon:'💻',items:['무선마우스','키보드','USB허브','모니터암','웹캠','보조배터리']},
+  '생활용품':{icon:'🧴',items:['핸드크림','물티슈','텀블러','우산','손소독제','에코백']},
+  '간식/음료':{icon:'🍪',items:['믹스커피','생수','과자세트','견과류','에너지바','초콜릿']},
+  '건강용품':{icon:'💊',items:['비타민C','멀티비타민','유산균','마그네슘','오메가3','프로틴바']},
+  '수납/정리':{icon:'📦',items:['수납박스','케이블정리함','서류함','모니터 받침대','연필꽂이','라벨기']},
+};
+
+// ==== INIT ====
+function init() {
+  buildKeypad();
+  renderEmojiGrid();
+  // Restore profile
+  const saved = ls_get('profile');
+  if (saved) {
+    myProfile = saved;
+    document.getElementById('profile-name').value = saved.name;
+  }
+  const savedPW = ls_get('appPassword');
+  if (savedPW) APP_PASSWORD = savedPW;
+  document.getElementById('profile-name').addEventListener('input', checkPfReady);
+  initFirebase();
+}
+
+function ls_get(key) {
+  try { const v = localStorage.getItem('poll_'+key); return v ? JSON.parse(v) : null; } catch(e) { return null; }
+}
+function ls_set(key, val) {
+  try { localStorage.setItem('poll_'+key, JSON.stringify(val)); } catch(e) {}
+}
+
+function showLoading() { document.getElementById('loading').classList.add('show'); }
+function hideLoading() { document.getElementById('loading').classList.remove('show'); }
+
+// ==== LOCK SCREEN ====
+let pinCode = '';
+function buildKeypad() {
+  const kp = document.getElementById('keypad');
+  const keys = [1,2,3,4,5,6,7,8,9,'','0','⌫'];
+  kp.innerHTML = keys.map(k => {
+    if (k === '') return '<button style="visibility:hidden"></button>';
+    if (k === '⌫') return '<button class="fn" onclick="pinDelete()">⌫</button>';
+    return '<button onclick="pinInput(\''+k+'\')">'+k+'</button>';
+  }).join('');
+}
+
+function pinInput(n) {
+  if (pinCode.length >= 4) return;
+  pinCode += n;
+  updateDots();
+  if (pinCode.length === 4) {
+    setTimeout(() => {
+      if (pinCode === APP_PASSWORD) {
+        pinCode = '';
+        updateDots();
+        showScreen('profile');
+        const saved = ls_get('profile');
+        if (saved) {
+          myProfile = saved;
+          document.getElementById('profile-name').value = saved.name;
+          setTimeout(() => {
+            const cells = document.querySelectorAll('.emoji-cell');
+            cells.forEach(c => { if (c.textContent === saved.emoji) { c.classList.add('selected'); myProfile.emoji = saved.emoji; } });
+            checkPfReady();
+          }, 50);
+        }
+      } else {
+        document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
+        setTimeout(() => { pinCode = ''; updateDots(); document.querySelectorAll('.pin-dot').forEach(d => d.classList.remove('error')); }, 600);
+        showToast('비밀번호가 틀렸습니다');
+      }
+    }, 200);
+  }
+}
+
+function pinDelete() { pinCode = pinCode.slice(0,-1); updateDots(); }
+function updateDots() {
+  document.querySelectorAll('.pin-dot').forEach((d,i) => d.classList.toggle('filled', i < pinCode.length));
+}
+
+// ==== ADMIN ====
+function changePassword() {
+  const cur = document.getElementById('admin-cur-pw').value;
+  const nw = document.getElementById('admin-new-pw').value;
+  const nw2 = document.getElementById('admin-new-pw2').value;
+  if (cur !== APP_PASSWORD) { showToast('현재 비밀번호가 틀렸습니다'); return; }
+  if (nw.length !== 4 || !/^\d{4}$/.test(nw)) { showToast('4자리 숫자를 입력해주세요'); return; }
+  if (nw !== nw2) { showToast('새 비밀번호가 일치하지 않습니다'); return; }
+  APP_PASSWORD = nw;
+  ls_set('appPassword', nw);
+  dbSaveSettings();
+  document.getElementById('admin-cur-pw').value = '';
+  document.getElementById('admin-new-pw').value = '';
+  document.getElementById('admin-new-pw2').value = '';
+  showToast('비밀번호가 변경되었습니다!');
+  showScreen('home');
+}
+
+// ==== PROFILE ====
+function renderEmojiGrid() {
+  document.getElementById('emoji-grid').innerHTML = EMOJIS.map(e =>
+    '<div class="emoji-cell" onclick="selEmoji(this,\''+e+'\')">'+e+'</div>'
+  ).join('');
+}
+function selEmoji(el, em) {
+  document.querySelectorAll('.emoji-cell').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  myProfile.emoji = em;
+  checkPfReady();
+}
+function checkPfReady() {
+  document.getElementById('pf-btn').disabled = !(document.getElementById('profile-name').value.trim() && myProfile.emoji);
+}
+function saveProfile() {
+  myProfile.name = document.getElementById('profile-name').value.trim();
+  if (!myProfile.name || !myProfile.emoji) return;
+  ls_set('profile', myProfile);
+  updateChips();
+  showScreen('home');
+  renderPollList();
+}
+function updateChips() {
+  const h = '<span class="pem">'+myProfile.emoji+'</span><span class="pnm">'+myProfile.name+'</span>';
+  document.getElementById('my-chip').innerHTML = h;
+  document.getElementById('vote-chip').innerHTML = h;
+}
+
+// ==== NAV ====
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  if (name === 'create') initCreateForm();
+  if (name === 'home') renderPollList();
+}
+
+// ==== POLL LIST ====
+function renderPollList() {
+  const list = document.getElementById('poll-list');
+  const f = polls.filter(p => {
+    if (currentFilter==='open') return !isExpired(p);
+    if (currentFilter==='closed') return isExpired(p);
+    return true;
+  });
+  if (!f.length) { list.innerHTML='<div class="empty-state"><div class="icon">📋</div><p>아직 주제가 없어요.<br>새 주제를 만들어보세요!</p></div>'; return; }
+  list.innerHTML = f.map(p => {
+    const exp = isExpired(p);
+    const dl = new Date(p.deadline);
+    const ds = (dl.getMonth()+1)+'/'+dl.getDate()+' '+dl.getHours()+':'+String(dl.getMinutes()).padStart(2,'0');
+    const avs = (p.votes||[]).slice(0,8).map(v => '<span style="font-size:16px">'+v.emoji+'</span>').join('');
+    const cc = countAllComments(p);
+    return '<div class="poll-card" onclick="showResult(\''+p.id+'\')">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<span class="poll-status '+(exp?'closed':'open')+'">'+(exp?'종료':'진행중')+'</span>' +
+        '<span style="font-size:12px;color:#86868b">'+(p.votes||[]).length+'명 참여</span>' +
+      '</div>' +
+      '<div class="poll-title">'+p.title+'</div>' +
+      '<div class="poll-meta"><span>'+p.createdByEmoji+' '+p.createdBy+'</span><span>마감: '+ds+'</span></div>' +
+      '<div class="voter-avatars" style="display:flex;gap:2px;margin-top:8px">'+avs+'</div>' +
+      (cc ? '<div class="comment-count">💬 의견 '+cc+'개</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+function countAllComments(p) {
+  let count = (p.comments||[]).length;
+  (p.comments||[]).forEach(c => { count += (c.replies||[]).length; });
+  return count;
+}
+
+function filterPolls(t,el) { currentFilter=t; document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); el.classList.add('active'); renderPollList(); }
+function isExpired(p) { return new Date()>new Date(p.deadline); }
+
+// ==== CREATE / EDIT POLL ====
+function renderTopicPresets() {
+  document.getElementById('topic-presets').innerHTML = topicPresets.map((t,i) =>
+    '<div class="preset-item" onclick="selectPreset(this,\''+t.replace(/'/g,"\\'")+'\')">' +
+      '<span class="preset-text">'+t+'</span>' +
+      '<span class="preset-actions" onclick="event.stopPropagation()">' +
+        '<button class="edit-btn" onclick="editPreset('+i+')">✏️</button>' +
+        '<button class="del-btn" onclick="deletePreset('+i+')">🗑</button>' +
+      '</span>' +
+    '</div>'
+  ).join('');
+}
+
+function selectPreset(el, text) {
+  document.querySelectorAll('.preset-item').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('poll-title').value = text;
+  autoPopulate(text);
+}
+
+function editPreset(idx) {
+  showModal('주제 수정', '', topicPresets[idx], function(val) {
+    if (val.trim()) { topicPresets[idx] = val.trim(); renderTopicPresets(); dbSaveSettings(); showToast('수정되었습니다'); }
+  });
+}
+
+function deletePreset(idx) {
+  topicPresets.splice(idx, 1);
+  renderTopicPresets();
+  dbSaveSettings();
+  showToast('삭제되었습니다');
+}
+
+function addTopicPreset() {
+  const text = document.getElementById('poll-title').value.trim();
+  if (!text) { showToast('먼저 주제를 입력해주세요'); return; }
+  if (topicPresets.includes(text)) { showToast('이미 등록된 주제예요'); return; }
+  topicPresets.push(text);
+  renderTopicPresets();
+  dbSaveSettings();
+  showToast('주제가 추가되었습니다!');
+}
+
+function initCreateForm() {
+  editingPollId = null;
+  document.getElementById('create-title').textContent = '새 주제 만들기';
+  document.getElementById('poll-title').value = '';
+  document.getElementById('allow-custom').checked = true;
+  document.getElementById('auto-source-tag').style.display = 'none';
+  lastAutoSource = null;
+  renderTopicPresets();
+  const tmr = new Date(); tmr.setDate(tmr.getDate()+1);
+  document.getElementById('poll-deadline-date').value = tmr.toISOString().split('T')[0];
+  document.getElementById('poll-deadline-time').value = '18:00';
+  document.getElementById('options-list').innerHTML = '';
+  addOptionField(''); addOptionField('');
+  document.getElementById('poll-title').oninput = function() { autoPopulate(this.value); };
+}
+
+function editPoll(id) {
+  const p = polls.find(x => String(x.id)===String(id));
+  if (!p) return;
+  showScreen('create');
+  editingPollId = id;
+  document.getElementById('create-title').textContent = '주제 수정';
+  document.getElementById('poll-title').value = p.title;
+  document.getElementById('allow-custom').checked = p.allowCustom;
+  const dl = new Date(p.deadline);
+  document.getElementById('poll-deadline-date').value = dl.toISOString().split('T')[0];
+  document.getElementById('poll-deadline-time').value = String(dl.getHours()).padStart(2,'0')+':'+String(dl.getMinutes()).padStart(2,'0');
+  document.getElementById('options-list').innerHTML = '';
+  p.options.forEach(o => addOptionField(o));
+}
+
+function autoPopulate(text) {
+  const isFood = foodKW.some(k=>text.includes(k));
+  const isShop = shopKW.some(k=>text.includes(k));
+  const tag = document.getElementById('auto-source-tag');
+  if (isFood && lastAutoSource !== 'food') {
+    fillSource(deliveryMenus, '🛵 배달 인기 메뉴 자동 불러옴'); lastAutoSource = 'food';
+  } else if (isShop && lastAutoSource !== 'shopping') {
+    fillSource(coupangProducts, '🚀 쿠팡 인기 상품 자동 불러옴'); lastAutoSource = 'shopping';
+  } else if (!isFood && !isShop && lastAutoSource) {
+    document.getElementById('options-list').innerHTML = '';
+    addOptionField(''); addOptionField('');
+    tag.style.display = 'none'; lastAutoSource = null;
+  }
+}
+
+function fillSource(data, tagText) {
+  const list = document.getElementById('options-list');
+  list.innerHTML = '';
+  Object.entries(data).forEach(([cat, d]) => addOptionField(d.icon+' '+cat));
+  const tag = document.getElementById('auto-source-tag');
+  tag.textContent = tagText; tag.style.display = 'inline-flex';
+}
+
+function addOptionField(value) {
+  value = value || '';
+  const list = document.getElementById('options-list');
+  const row = document.createElement('div');
+  row.className = 'option-row';
+  row.innerHTML = '<input type="text" placeholder="보기 '+(list.children.length+1)+'" value="'+value.replace(/"/g,'&quot;')+'">' +
+    '<button class="remove-btn" onclick="this.parentElement.remove()">×</button>';
+  list.appendChild(row);
+}
+
+function savePoll() {
+  const title = document.getElementById('poll-title').value.trim();
+  if (!title) { showToast('주제를 입력해주세요'); return; }
+  const opts = Array.from(document.querySelectorAll('#options-list input')).map(e=>e.value.trim()).filter(v=>v);
+  if (opts.length < 2) { showToast('보기를 2개 이상 입력해주세요'); return; }
+  const dv = document.getElementById('poll-deadline-date').value;
+  const tv = document.getElementById('poll-deadline-time').value;
+  if (!dv) { showToast('마감일을 설정해주세요'); return; }
+  const isFood = foodKW.some(k=>title.includes(k));
+  const isShop = shopKW.some(k=>title.includes(k));
+
+  if (editingPollId) {
+    const p = polls.find(x => String(x.id)===String(editingPollId));
+    if (p) {
+      p.title=title; p.options=opts;
+      p.allowCustom=document.getElementById('allow-custom').checked;
+      p.deadline=new Date(dv+'T'+tv).toISOString();
+      p.menuSource=isFood?'배달 인기메뉴':isShop?'쿠팡 인기상품':null;
+      dbSavePoll(p);
+    }
+    showToast('수정되었습니다!');
+  } else {
+    const newPoll = {
+      id: String(Date.now()),
+      title, options: opts,
+      allowCustom: document.getElementById('allow-custom').checked,
+      deadline: new Date(dv+'T'+tv).toISOString(),
+      createdBy: myProfile.name, createdByEmoji: myProfile.emoji,
+      createdAt: new Date().toISOString(),
+      menuSource: isFood?'배달 인기메뉴':isShop?'쿠팡 인기상품':null,
+      votes: [], comments: []
+    };
+    polls.unshift(newPoll);
+    dbSavePoll(newPoll);
+    showToast('주제가 생성되었습니다!');
+  }
+  editingPollId = null;
+  showScreen('home');
+}
+
+function deletePoll(id) {
+  polls = polls.filter(p => String(p.id)!==String(id));
+  dbDeletePoll(id);
+  showToast('삭제되었습니다');
+  showScreen('home');
+}
+
+// ==== VOTE ====
+function showVote(pollId) {
+  const p = polls.find(x => String(x.id)===String(pollId));
+  if (!p) return;
+  if (isExpired(p)) { showResult(pollId); return; }
+  const dl = new Date(p.deadline);
+  const rem = getTimeRemaining(dl);
+  const ev = (p.votes||[]).find(v=>v.voter===myProfile.name);
+  let html = '<div class="vote-question">'+p.title+'</div>' +
+    '<div class="vote-desc">'+p.createdByEmoji+' '+p.createdBy+'</div>' +
+    (p.menuSource?'<div class="menu-source-tag" style="margin-bottom:12px">'+p.menuSource+'</div>':'') +
+    '<div class="vote-deadline">⏰ 마감까지 '+rem+' 남음</div>' +
+    '<div class="vote-options" id="vote-options">';
+  p.options.forEach(opt => {
+    const vb = (p.votes||[]).filter(v=>v.option===opt);
+    html += '<div class="vote-option '+(ev&&ev.option===opt?'selected':'')+'" onclick="selVoteOpt(this)">' +
+      '<span class="check">✓</span><span class="opt-text">'+opt+'</span>' +
+      (vb.length?'<span class="opt-meta">'+vb.map(v=>v.emoji).join('')+' '+vb.length+'</span>':'') +
+    '</div>';
+  });
+  html += '</div>';
+  if (p.allowCustom) {
+    html += '<div class="custom-input-area"><span class="custom-toggle" onclick="togCustom()">✏️ 직접 입력하기</span>' +
+      '<input type="text" id="custom-vote-input" placeholder="원하는 답변을 입력하세요" style="display:none;margin-top:8px"' +
+      ' value="'+(ev&&!p.options.includes(ev.option)?ev.option:'')+'"></div>';
+  }
+  html += '<button class="submit-btn" onclick="submitVote(\''+p.id+'\')">'+(ev?'답변 수정하기':'투표하기')+'</button>' +
+    '<div style="margin-top:12px;text-align:center"><span style="font-size:13px;color:#86868b;cursor:pointer" onclick="showResult(\''+p.id+'\')">현재 결과 미리보기 →</span></div>';
+  document.getElementById('vote-area').innerHTML = html;
+  showScreen('vote');
+}
+
+function selVoteOpt(el) {
+  document.querySelectorAll('#vote-options .vote-option').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  const ci = document.getElementById('custom-vote-input');
+  if (ci) ci.value = '';
+}
+
+function togCustom() {
+  const i = document.getElementById('custom-vote-input');
+  i.style.display = i.style.display==='none'?'block':'none';
+  if (i.style.display==='block') { i.focus(); document.querySelectorAll('#vote-options .vote-option').forEach(o=>o.classList.remove('selected')); }
+}
+
+function submitVote(pollId) {
+  const p = polls.find(x => String(x.id)===String(pollId));
+  if (!p||isExpired(p)) { showToast('마감된 투표입니다'); return; }
+  const sel = document.querySelector('#vote-options .vote-option.selected');
+  const ci = document.getElementById('custom-vote-input');
+  let ans = '';
+  if (sel) ans = sel.querySelector('.opt-text').textContent;
+  else if (ci&&ci.value.trim()) { ans=ci.value.trim(); if(!p.options.includes(ans)) p.options.push(ans); }
+  if (!ans) { showToast('답변을 선택해주세요'); return; }
+  if (!p.votes) p.votes = [];
+  const ei = p.votes.findIndex(v=>v.voter===myProfile.name);
+  const vd = {voter:myProfile.name,emoji:myProfile.emoji,option:ans,time:new Date().toISOString()};
+  if (ei>=0) { p.votes[ei]=vd; showToast('답변이 수정되었습니다!'); }
+  else { p.votes.push(vd); showToast('투표 완료!'); }
+  dbSavePoll(p);
+  showResult(pollId);
+}
+
+// ==== RESULT ====
+function showResult(pollId) {
+  const p = polls.find(x => String(x.id)===String(pollId));
+  if (!p) return;
+  const exp = isExpired(p);
+  const counts = {};
+  p.options.forEach(o=>counts[o]=0);
+  (p.votes||[]).forEach(v=>{counts[v.option]=(counts[v.option]||0)+1;});
+  const total = (p.votes||[]).length;
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const colors = ['c1','c2','c3','c4','c5','c6'];
+  const winner = sorted[0];
+  const comments = p.comments || [];
+
+  let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+    '<div>' +
+      '<div class="result-title">'+p.title+'</div>' +
+      '<div class="result-summary">'+(exp?'종료됨':'진행중')+' · '+total+'명 참여'+(exp&&winner?' · 최다: '+winner[0]:'')+'</div>' +
+    '</div>' +
+    '<div style="display:flex;gap:4px">' +
+      '<button onclick="editPoll(\''+p.id+'\')" style="padding:4px 10px;border-radius:8px;border:1px solid #d2d2d7;background:#fff;font-size:13px;cursor:pointer">수정</button>' +
+      '<button onclick="confirmDeletePoll(\''+p.id+'\')" style="padding:4px 10px;border-radius:8px;border:1px solid #ffcdd2;background:#fff;color:#ff3b30;font-size:13px;cursor:pointer">삭제</button>' +
+    '</div>' +
+  '</div>';
+  if (p.menuSource) html += '<div class="menu-source-tag" style="margin:8px 0 16px">'+p.menuSource+'</div>';
+
+  sorted.forEach(([opt,cnt],i) => {
+    const pct = total>0?Math.round(cnt/total*100):0;
+    const voters = (p.votes||[]).filter(v=>v.option===opt);
+    html += '<div class="result-bar-group">' +
+      '<div class="result-bar-label"><span>'+opt+'</span><span class="count">'+cnt+'명 ('+pct+'%)</span></div>' +
+      '<div class="result-bar-track"><div class="result-bar-fill '+colors[i%6]+'" style="width:'+Math.max(pct,3)+'%">'+(pct>10?pct+'%':'')+'</div></div>' +
+      '<div class="result-bar-voters">'+voters.map(v=>'<span class="voter-tag">'+v.emoji+' '+v.voter+'</span>').join('')+'</div>' +
+    '</div>';
+  });
+
+  html += '<div class="result-total">총 '+total+'명 참여</div>';
+  if (!exp) html += '<div style="margin-top:16px"><button class="submit-btn" onclick="showVote(\''+p.id+'\')" style="background:#34c759">투표하러 가기</button></div>';
+
+  // Comments with replies
+  html += '<div class="comments-section">' +
+    '<div class="comments-title">💬 의견 <span class="cnt">'+countAllComments(p)+'개</span></div>' +
+    '<div id="comments-list-'+p.id+'">';
+
+  comments.forEach((c,ci) => {
+    const t = new Date(c.time);
+    const ts = (t.getMonth()+1)+'/'+t.getDate()+' '+t.getHours()+':'+String(t.getMinutes()).padStart(2,'0');
+    html += '<div class="comment-item">' +
+      '<div class="comment-main">' +
+        '<div class="comment-avatar">'+c.emoji+'</div>' +
+        '<div class="comment-body">' +
+          '<div class="comment-header"><span class="cname">'+c.voter+'</span><span class="ctime">'+ts+'</span></div>' +
+          '<div class="comment-text">'+escapeHtml(c.text)+'</div>' +
+          '<div class="comment-actions"><span onclick="toggleReplyInput(\''+p.id+'\','+ci+')">답글</span>' +
+          ((c.replies||[]).length>0 ? '<span style="color:#86868b;cursor:default">답글 '+(c.replies||[]).length+'개</span>' : '') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    // Replies
+    if ((c.replies||[]).length > 0 || false) {
+      html += '<div class="replies-container" id="replies-'+p.id+'-'+ci+'">';
+      (c.replies||[]).forEach(r => {
+        const rt = new Date(r.time);
+        const rts = (rt.getMonth()+1)+'/'+rt.getDate()+' '+rt.getHours()+':'+String(rt.getMinutes()).padStart(2,'0');
+        html += '<div class="reply-item">' +
+          '<div class="comment-avatar">'+r.emoji+'</div>' +
+          '<div class="comment-body">' +
+            '<div class="comment-header"><span class="cname">'+r.voter+'</span><span class="ctime">'+rts+'</span></div>' +
+            '<div class="comment-text">'+escapeHtml(r.text)+'</div>' +
+          '</div>' +
+        '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Reply input area (hidden by default)
+    html += '<div class="replies-container" id="reply-input-area-'+p.id+'-'+ci+'" style="display:none">' +
+      '<div class="reply-input-row">' +
+        '<input type="text" id="reply-input-'+p.id+'-'+ci+'" placeholder="답글을 입력하세요..." onkeydown="if(event.key===\'Enter\')addReply(\''+p.id+'\','+ci+')">' +
+        '<button onclick="addReply(\''+p.id+'\','+ci+')">전송</button>' +
+      '</div>' +
+    '</div>';
+
+    html += '</div>'; // end comment-item
+  });
+
+  html += '</div>'; // end comments-list
+  html += '<div class="comment-input-row">' +
+    '<input type="text" id="comment-input-'+p.id+'" placeholder="의견을 남겨주세요..." onkeydown="if(event.key===\'Enter\')addComment(\''+p.id+'\')">' +
+    '<button onclick="addComment(\''+p.id+'\')">전송</button>' +
+  '</div></div>'; // end comments-section
+
+  document.getElementById('result-area').innerHTML = html;
+  showScreen('result');
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function toggleReplyInput(pollId, commentIdx) {
+  const el = document.getElementById('reply-input-area-'+pollId+'-'+commentIdx);
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    document.getElementById('reply-input-'+pollId+'-'+commentIdx).focus();
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function addReply(pollId, commentIdx) {
+  const p = polls.find(x => String(x.id)===String(pollId));
+  if (!p) return;
+  const input = document.getElementById('reply-input-'+pollId+'-'+commentIdx);
+  const text = input.value.trim();
+  if (!text) return;
+  if (!p.comments[commentIdx].replies) p.comments[commentIdx].replies = [];
+  p.comments[commentIdx].replies.push({
+    voter: myProfile.name, emoji: myProfile.emoji,
+    text, time: new Date().toISOString()
+  });
+  dbSavePoll(p);
+  showResult(pollId);
+}
+
+function addComment(pollId) {
+  const p = polls.find(x => String(x.id)===String(pollId));
+  if (!p) return;
+  const input = document.getElementById('comment-input-'+pollId);
+  const text = input.value.trim();
+  if (!text) return;
+  if (!p.comments) p.comments = [];
+  p.comments.push({ voter:myProfile.name, emoji:myProfile.emoji, text, time:new Date().toISOString(), replies:[] });
+  input.value = '';
+  dbSavePoll(p);
+  showResult(pollId);
+}
+
+function confirmDeletePoll(id) {
+  showConfirmModal('주제 삭제', '이 주제를 삭제하시겠습니까? 투표 결과와 의견도 모두 삭제됩니다.', function() { deletePoll(id); });
+}
+
+// ==== MODAL ====
+function showModal(title, desc, defaultVal, onConfirm) {
+  const m = document.getElementById('modal-content');
+  window._modalCallback = onConfirm;
+  m.innerHTML = '<h3>'+title+'</h3>'+(desc?'<p>'+desc+'</p>':'') +
+    '<input type="text" id="modal-input" value="'+(defaultVal||'').replace(/"/g,'&quot;')+'">' +
+    '<div class="modal-actions">' +
+      '<button class="cancel" onclick="closeModal()">취소</button>' +
+      '<button class="confirm" onclick="window._modalCallback(document.getElementById(\'modal-input\').value);closeModal()">확인</button>' +
+    '</div>';
+  document.getElementById('modal').classList.add('show');
+}
+
+function showConfirmModal(title, desc, onConfirm) {
+  const m = document.getElementById('modal-content');
+  window._modalConfirmCallback = onConfirm;
+  m.innerHTML = '<h3>'+title+'</h3><p>'+desc+'</p>' +
+    '<div class="modal-actions">' +
+      '<button class="cancel" onclick="closeModal()">취소</button>' +
+      '<button class="del" onclick="closeModal();window._modalConfirmCallback()">삭제</button>' +
+    '</div>';
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+
+// ==== UTILS ====
+function getTimeRemaining(dl) {
+  const d=dl-new Date();
+  if(d<=0)return '마감됨';
+  const h=Math.floor(d/36e5),m=Math.floor((d%36e5)/6e4);
+  return h>24?Math.floor(h/24)+'일 '+(h%24)+'시간':h+'시간 '+m+'분';
+}
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';
+  setTimeout(()=>t.style.display='none',2000);
+}
+
+// ==== SERVICE WORKER ====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+init();
+</script>
+</body>
+</html>
